@@ -24,33 +24,22 @@ const GMSHTYPE = Dict(
 Reorder `nodes` of a given `entity` from the Gmsh format to CGNS format.
 
 See https://gmsh.info/doc/texinfo/gmsh.html#Node-ordering
+
+# Implementation
+By default, same numbering between CGNS and Gmsh is applied. Specialized the function
+`nodes_gmsh2cgns(e::Type{<:T}) where {T <: Bcube.AbstractEntityType}` to secify a
+different numbering
 """
-function nodes_gmsh2cgns(entity::AbstractEntityType, nodes::AbstractArray)
+function nodes_gmsh2cgns(entity::Bcube.AbstractEntityType, nodes::AbstractArray)
     map(i -> nodes[i], nodes_gmsh2cgns(entity))
 end
 
 nodes_gmsh2cgns(e) = nodes_gmsh2cgns(typeof(e))
-function nodes_gmsh2cgns(::Type{<:T}) where {T <: AbstractEntityType}
-    error("Function nodes_gmsh2cgns is not defined for type $T")
+
+function nodes_gmsh2cgns(e::Type{<:T}) where {T <: Bcube.AbstractEntityType}
+    nodes(e)
 end
-nodes_gmsh2cgns(e::Type{Node_t}) = nodes(e) #same numbering between CGNS and Gmsh
-nodes_gmsh2cgns(e::Type{Bar2_t}) = nodes(e) #same numbering between CGNS and Gmsh
-nodes_gmsh2cgns(e::Type{Bar3_t}) = nodes(e) #same numbering between CGNS and Gmsh
-nodes_gmsh2cgns(e::Type{Bar4_t}) = nodes(e) #same numbering between CGNS and Gmsh
-nodes_gmsh2cgns(e::Type{Bar5_t}) = nodes(e) #same numbering between CGNS and Gmsh
-nodes_gmsh2cgns(e::Type{Tri3_t}) = nodes(e) #same numbering between CGNS and Gmsh
-nodes_gmsh2cgns(e::Type{Tri6_t}) = nodes(e) #same numbering between CGNS and Gmsh
-nodes_gmsh2cgns(e::Type{Tri9_t}) = nodes(e) #same numbering between CGNS and Gmsh
-nodes_gmsh2cgns(e::Type{Tri10_t}) = nodes(e) #same numbering between CGNS and Gmsh
-nodes_gmsh2cgns(e::Type{Tri12_t}) = nodes(e) #same numbering between CGNS and Gmsh
-nodes_gmsh2cgns(e::Type{Quad4_t}) = nodes(e) #same numbering between CGNS and Gmsh
-nodes_gmsh2cgns(e::Type{Quad8_t}) = nodes(e) #same numbering between CGNS and Gmsh
-nodes_gmsh2cgns(e::Type{Quad9_t}) = nodes(e) #same numbering between CGNS and Gmsh
-nodes_gmsh2cgns(e::Type{Quad16_t}) = nodes(e) #same numbering between CGNS and Gmsh
-nodes_gmsh2cgns(e::Type{Tetra4_t}) = nodes(e) #same numbering between CGNS and Gmsh
-nodes_gmsh2cgns(e::Type{Tetra10_t}) = nodes(e) #same numbering between CGNS and Gmsh
-nodes_gmsh2cgns(e::Type{Hexa8_t}) = nodes(e) #same numbering between CGNS and Gmsh
-function nodes_gmsh2cgns(::Type{Hexa27_t})
+function nodes_gmsh2cgns(::Type{Bcube.Hexa27_t})
     SA[
         1,
         2,
@@ -81,8 +70,6 @@ function nodes_gmsh2cgns(::Type{Hexa27_t})
         27,
     ]
 end
-nodes_gmsh2cgns(e::Type{Penta6_t}) = nodes(e) #same numbering between CGNS and Gmsh
-nodes_gmsh2cgns(e::Type{Pyra5_t}) = nodes(e) #same numbering between CGNS and Gmsh
 
 """
 Convert a cell->node connectivity with gmsh numbering convention to a cell->node connectivity
