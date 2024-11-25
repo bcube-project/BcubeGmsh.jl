@@ -1,29 +1,19 @@
 function Bcube.read_mesh(
     ::GmshIoHandler,
-    filepath::String,
-    domainNames = String[],
+    filepath::String;
+    spacedim::Int = 0,
+    verbose::Bool = false,
     kwargs...,
 )
-    error("not implemented yet")
-end
-
-"""
-    read_msh(path::String, spaceDim::Int = 0; verbose::Bool = false)
-
-Read a .msh file designated by its `path`.
-
-See `read_msh()` for more details.
-"""
-function read_msh(path::String, spaceDim::Int = 0; verbose::Bool = false)
-    isfile(path) ? nothing : error("File does not exist ", path)
+    isfile(filepath) ? nothing : error("File does not exist ", filepath)
 
     # Read file using gmsh lib
     gmsh.initialize()
     gmsh.option.setNumber("General.Terminal", Int(verbose))
-    gmsh.open(path)
+    gmsh.open(filepath)
 
     # build mesh
-    mesh = _read_msh(spaceDim, verbose)
+    mesh = _read_msh(spacedim, verbose)
 
     # free gmsh
     gmsh.finalize()
@@ -54,7 +44,7 @@ function _read_msh(spaceDim::Int, verbose::Bool)
 
     # Create a node number remapping to ensure a dense numbering
     absolute_node_indices = [convert(Int, i) for i in ids]
-    _, glo2loc_node_indices = densify(absolute_node_indices; permute_back = true)
+    _, glo2loc_node_indices = Bcube.densify(absolute_node_indices; permute_back = true)
 
     # Build nodes coordinates
     xyz = reshape(xyz, 3, :)
@@ -66,7 +56,7 @@ function _read_msh(spaceDim::Int, verbose::Bool)
 
     # Create a cell number remapping to ensure a dense numbering
     absolute_cell_indices = Int.(reduce(vcat, elementTags))
-    _, glo2loc_cell_indices = densify(absolute_cell_indices; permute_back = true)
+    _, glo2loc_cell_indices = Bcube.densify(absolute_cell_indices; permute_back = true)
 
     # Read boundary conditions
     bc_tags = gmsh.model.getPhysicalGroups(-1)
@@ -92,7 +82,7 @@ function _read_msh(spaceDim::Int, verbose::Bool)
     ]
 
     # Build cell->node connectivity (with Gmsh internal numbering convention)
-    c2n_gmsh = Connectivity(
+    c2n_gmsh = Bcube.Connectivity(
         Int[nnodes(k) for k in reduce(vcat, celltypes)],
         Int[glo2loc_node_indices[k] for k in reduce(vcat, nodeTags)],
     )
@@ -100,9 +90,9 @@ function _read_msh(spaceDim::Int, verbose::Bool)
     # Convert to CGNS numbering
     c2n = _c2n_gmsh2cgns(celltypes, c2n_gmsh)
 
-    mesh = Mesh(nodes, celltypes, c2n; bc_names = bc_names, bc_nodes = bc_nodes)
-    add_absolute_indices!(mesh, :node, absolute_node_indices)
-    add_absolute_indices!(mesh, :cell, absolute_cell_indices)
+    mesh = Bcube.Mesh(nodes, celltypes, c2n; bc_names = bc_names, bc_nodes = bc_nodes)
+    Bcube.add_absolute_indices!(mesh, :node, absolute_node_indices)
+    Bcube.add_absolute_indices!(mesh, :cell, absolute_cell_indices)
     return mesh
 end
 
@@ -164,7 +154,7 @@ function _read_msh_with_cell_names(spaceDim::Int, verbose::Bool)
     end
 
     absolute_cell_indices = absolute_indices(mesh, :cell)
-    _, glo2loc_cell_indices = densify(absolute_cell_indices; permute_back = true)
+    _, glo2loc_cell_indices = Bcube.densify(absolute_cell_indices; permute_back = true)
 
     return mesh, el_names, el_names_inv, el_cells, glo2loc_cell_indices
 end
