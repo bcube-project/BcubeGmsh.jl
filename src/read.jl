@@ -1,3 +1,10 @@
+struct GmshMetaData <: Bcube.AbstractMeshMetaData
+    name2cells::Dict{String, Vector{Int}}
+end
+
+get_zone_names(metadata::GmshMetaData, ::Bcube.AbstractMesh) = metadata.names
+get_zone_element_indices(::GmshMetaData, ::Bcube.AbstractMesh, name) = nothing
+
 function Bcube.read_mesh(
     ::GmshIoHandler,
     filepath::String;
@@ -5,15 +12,26 @@ function Bcube.read_mesh(
     verbose::Bool = false,
     kwargs...,
 )
-    isfile(filepath) ? nothing : error("File does not exist ", filepath)
+    return read_msh(filepath, spacedim; verbose)
+end
+
+"""
+    read_msh(path::String, spaceDim::Int = 0; verbose::Bool = false)
+
+Read a .msh file designated by its `path`.
+
+See `read_msh()` for more details.
+"""
+function read_msh(path::String, spaceDim::Int = 0; verbose::Bool = false)
+    isfile(path) ? nothing : error("File does not exist ", path)
 
     # Read file using gmsh lib
     gmsh.initialize()
     gmsh.option.setNumber("General.Terminal", Int(verbose))
-    gmsh.open(filepath)
+    gmsh.open(path)
 
     # build mesh
-    mesh = _read_msh(spacedim, verbose)
+    mesh = _read_msh(spaceDim, verbose)
 
     # free gmsh
     gmsh.finalize()
@@ -153,7 +171,7 @@ function _read_msh_with_cell_names(spaceDim::Int, verbose::Bool)
         el_cells[_tag] = v
     end
 
-    absolute_cell_indices = absolute_indices(mesh, :cell)
+    absolute_cell_indices = Bcube.absolute_indices(mesh, :cell)
     _, glo2loc_cell_indices = Bcube.densify(absolute_cell_indices; permute_back = true)
 
     return mesh, el_names, el_names_inv, el_cells, glo2loc_cell_indices
