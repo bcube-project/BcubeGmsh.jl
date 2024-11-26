@@ -2,8 +2,10 @@ struct GmshMetaData <: Bcube.AbstractMeshMetaData
     name2cells::Dict{String, Vector{Int}}
 end
 
-get_zone_names(metadata::GmshMetaData, ::Bcube.AbstractMesh) = metadata.names
-get_zone_element_indices(::GmshMetaData, ::Bcube.AbstractMesh, name) = nothing
+get_zone_names(metadata::GmshMetaData, ::Bcube.AbstractMesh) = keys(metadata.names)
+function get_zone_element_indices(metadata::GmshMetaData, ::Bcube.AbstractMesh, name)
+    metadata.name2cells[name]
+end
 
 function Bcube.read_mesh(
     ::GmshIoHandler,
@@ -12,6 +14,7 @@ function Bcube.read_mesh(
     verbose::Bool = false,
     kwargs...,
 )
+    @assert length(domains) == 0 "Reading only some domains is not supported yet (but easy to implement)"
     return read_msh(filepath, spacedim; verbose)
 end
 
@@ -108,42 +111,6 @@ function _read_msh(spaceDim::Int, verbose::Bool)
     # Convert to CGNS numbering
     c2n = _c2n_gmsh2cgns(celltypes, c2n_gmsh)
 
-    mesh = Bcube.Mesh(nodes, celltypes, c2n; bc_names = bc_names, bc_nodes = bc_nodes)
-    Bcube.add_absolute_indices!(mesh, :node, absolute_node_indices)
-    Bcube.add_absolute_indices!(mesh, :cell, absolute_cell_indices)
-    return mesh
-end
-
-"""
-    read_msh_with_cell_names(path::String, spaceDim = 0; verbose = false)
-
-Read a .msh file designated by its `path` and also return names and tags
-"""
-function read_msh_with_cell_names(path::String, spaceDim = 0; verbose = false)
-    isfile(path) ? nothing : error("File does not exist ", path)
-
-    # Read file using gmsh lib
-    gmsh.initialize()
-    gmsh.option.setNumber("General.Terminal", Int(verbose))
-    gmsh.open(path)
-
-    mesh, el_names, el_names_inv, el_cells, glo2loc_cell_indices =
-        _read_msh_with_cell_names(spaceDim, verbose)
-
-    # free gmsh
-    gmsh.finalize()
-
-    return mesh, el_names, el_names_inv, el_cells, glo2loc_cell_indices
-end
-
-"""
-To use this function, the `gmsh` file must have been opened already (see `read_msh_with_cell_names(path::String)` for instance).
-"""
-function _read_msh_with_cell_names(spaceDim::Int, verbose::Bool)
-    # build mesh
-    _spaceDim = spaceDim > 0 ? spaceDim : _compute_space_dim(verbose)
-    mesh = _read_msh(_spaceDim, verbose)
-
     # Read volumic physical groups (build a dict tag -> name)
     el_tags = gmsh.model.getPhysicalGroups(_spaceDim)
     _el_names = [gmsh.model.getPhysicalName(_dim, _tag) for (_dim, _tag) in el_tags]
@@ -152,7 +119,7 @@ function _read_msh_with_cell_names(spaceDim::Int, verbose::Bool)
         _dim == _spaceDim && _name ≠ ""
     ]
     el_names = Dict(convert(Int, _tag) => _name for (_tag, _name) in el)
-    el_names_inv = Dict(_name => convert(Int, _tag) for (_tag, _name) in el)
+    # el_names_inv = Dict(_name => convert(Int, _tag) for (_tag, _name) in el)
 
     # Read cell indices associated to each volumic physical group
     el_cells = Dict{Int, Array{Int}}()
@@ -165,7 +132,7 @@ function _read_msh_with_cell_names(spaceDim::Int, verbose::Bool)
             # Notes : a PhysicalGroup "entity" can contain different types of elements.
             # So `tmpTags` is an array of the cell indices of each type in the Physical group.
             for _tmpTags in tmpTags
-                v = vcat(v, Int.(_tmpTags))
+                v = vcat(v, Int.(_tmpTags)) # would a "push!" be a better alternative?
             end
         end
         el_cells[_tag] = v
@@ -174,7 +141,24 @@ function _read_msh_with_cell_names(spaceDim::Int, verbose::Bool)
     absolute_cell_indices = Bcube.absolute_indices(mesh, :cell)
     _, glo2loc_cell_indices = Bcube.densify(absolute_cell_indices; permute_back = true)
 
-    return mesh, el_names, el_names_inv, el_cells, glo2loc_cell_indices
+    # Create the name => cells dict
+    names2cells = Dict(
+        name => [glo2loc_cell_indices[i] for i in el_cells[tag]] for
+        (tag, name) in el_names
+    )
+    metadata = GmshMetaData(names2cells)
+
+    mesh = Bcube.Mesh(
+        nodes,
+        celltypes,
+        c2n;
+        bc_names = bc_names,
+        bc_nodes = bc_nodes,
+        metadata,
+    )
+    Bcube.add_absolute_indices!(mesh, :node, absolute_node_indices)
+    Bcube.add_absolute_indices!(mesh, :cell, absolute_cell_indices)
+    return mesh
 end
 
 """
