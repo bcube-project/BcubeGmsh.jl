@@ -10,6 +10,7 @@ end
 function Bcube.read_mesh(
     ::GmshIoHandler,
     filepath::String;
+    domains = String[],
     spacedim::Int = 0,
     verbose::Bool = false,
     kwargs...,
@@ -137,9 +138,6 @@ function _read_msh(spaceDim::Int, verbose::Bool)
         end
         el_cells[_tag] = v
     end
-
-    absolute_cell_indices = Bcube.absolute_indices(mesh, :cell)
-    _, glo2loc_cell_indices = Bcube.densify(absolute_cell_indices; permute_back = true)
 
     # Create the name => cells dict
     names2cells = Dict(
