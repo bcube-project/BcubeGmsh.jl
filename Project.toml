@@ -9,6 +9,3 @@ gmsh_jll = "630162c2-fc9b-58b3-9910-8442a8a132e6"
 
 [compat]
 Bcube = "0.2"
-
-[sources]
-Bcube = {url = "https://github.com/bcube-project/Bcube.jl", rev = "0.2"}
