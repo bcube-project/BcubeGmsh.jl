@@ -563,6 +563,76 @@ function gen_hexa_mesh(
 end
 
 """
+    gen_ring_mesh(
+        output;
+        r_int,
+        r_ext,
+        lc = 1e-1,
+        order = 1,
+        n_partitions = 0,
+        kwargs...
+    )
+
+Generate a 2D mesh of a ring of interior radius `r_int` and exterior radius `r_ext` and write the mesh to `output`.
+
+For kwargs, see [`gen_line_mesh`](@ref).
+"""
+function gen_ring_mesh(
+    output;
+    r_int,
+    r_ext,
+    lc = 1e-1,
+    order = 1,
+    n_partitions = 0,
+    kwargs...,
+)
+    gmsh.initialize()
+    _apply_gmsh_options(; kwargs...)
+
+    # Points
+    O = gmsh.model.geo.addPoint(0, 0, 0, lc)
+    A1 = gmsh.model.geo.addPoint(r_int, 0, 0, lc)
+    B1 = gmsh.model.geo.addPoint(-r_int, 0, 0, lc)
+    A2 = gmsh.model.geo.addPoint(r_ext, 0, 0, lc)
+    B2 = gmsh.model.geo.addPoint(-r_ext, 0, 0, lc)
+
+    # Lines
+    A1OB1 = gmsh.model.geo.addCircleArc(A1, O, B1)
+    B1OA1 = gmsh.model.geo.addCircleArc(B1, O, A1)
+    A2OB2 = gmsh.model.geo.addCircleArc(A2, O, B2)
+    B2OA2 = gmsh.model.geo.addCircleArc(B2, O, A2)
+
+    # Contour
+    circle1 = gmsh.model.geo.addCurveLoop([A1OB1, B1OA1])
+    circle2 = gmsh.model.geo.addCurveLoop([A2OB2, B2OA2])
+
+    # Surface
+    ring = gmsh.model.geo.addPlaneSurface([circle2, circle1])
+
+    # Synchronize
+    gmsh.model.geo.synchronize()
+
+    # Define boundaries (`1` stands for 1D, i.e lines)
+    inner = gmsh.model.addPhysicalGroup(1, [A1OB1, B1OA1])
+    outer = gmsh.model.addPhysicalGroup(1, [A2OB2, B2OA2])
+    domain = gmsh.model.addPhysicalGroup(2, [ring])
+    gmsh.model.setPhysicalName(1, inner, "INNER")
+    gmsh.model.setPhysicalName(1, outer, "OUTER")
+    gmsh.model.setPhysicalName(2, domain, "Domain")
+
+    # Gen mesh
+    gmsh.model.mesh.generate(2)
+    gmsh.model.mesh.setOrder(order)
+    gmsh.model.mesh.partition(n_partitions)
+
+    # Write result
+    gmsh.write(output)
+
+    # End
+    gmsh.finalize()
+end
+
+"""
     gen_disk_mesh(
         output;
         radius = 1.0,
