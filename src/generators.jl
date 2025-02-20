@@ -563,6 +563,60 @@ function gen_hexa_mesh(
 end
 
 """
+    gen_circle_mesh(
+        output, n;
+        radius = 1.0,
+        order = 1,
+        n_partitions = 0,
+        kwargs...
+    )
+
+Generate a mesh of a circle with `n` points and write the mesh to `output`.
+
+The circle is actually divided into two equal arcs that are meshed with `n/2` points.
+Hence, there will always be a node in (R,0) and a node in (-R,0).
+
+For kwargs, see [`gen_line_mesh`](@ref).
+"""
+function gen_circle_mesh(output, n; radius = 1.0, order = 1, n_partitions = 0, kwargs...)
+    gmsh.initialize()
+    _apply_gmsh_options(; kwargs...)
+
+    lc = 1.0
+
+    # Points
+    O = gmsh.model.geo.addPoint(0, 0, 0, lc)
+    A = gmsh.model.geo.addPoint(radius, 0, 0, lc)
+    B = gmsh.model.geo.addPoint(-radius, 0, 0, lc)
+
+    # Lines
+    AOB = gmsh.model.geo.addCircleArc(A, O, B)
+    BOA = gmsh.model.geo.addCircleArc(B, O, A)
+
+    # Mesh
+    gmsh.model.geo.mesh.setTransfiniteCurve(AOB, round(Int, n / 2))
+    gmsh.model.geo.mesh.setTransfiniteCurve(BOA, round(Int, n / 2))
+
+    # Synchronize
+    gmsh.model.geo.synchronize()
+
+    # Define boundaries (`1` stands for 1D, i.e lines)
+    domain = gmsh.model.addPhysicalGroup(1, [AOB, BOA])
+    gmsh.model.setPhysicalName(1, domain, "Domain")
+
+    # Gen mesh
+    gmsh.model.mesh.generate(1)
+    gmsh.model.mesh.setOrder(order)
+    gmsh.model.mesh.partition(n_partitions)
+
+    # Write result
+    gmsh.write(output)
+
+    # End
+    gmsh.finalize()
+end
+
+"""
     gen_disk_mesh(
         output;
         radius = 1.0,
