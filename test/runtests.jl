@@ -38,7 +38,10 @@ end
 tempdir = mktempdir()
 
 # Reading sha1 checksums
-f = readdlm(joinpath(@__DIR__, "checksums.sha1"), String)
+filename = "checksums"
+Sys.isapple() && (filename *= "-apple")
+Sys.iswindows() && (filename *= "-windows")
+f = readdlm(joinpath(@__DIR__, "$(filename).sha1"), String)
 fname2sum = Dict(r[2] => r[1] for r in eachrow(f))
 
 @testset "BcubeGmsh.jl" begin
