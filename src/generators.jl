@@ -7,10 +7,15 @@
         order = 1,
         bnd_names = ("LEFT", "RIGHT"),
         n_partitions = 0,
+        mesh_type = "Progression",
+        coef = 1.0,
         kwargs...
     )
 
 Generate a 1D mesh of a segment and write to "output".
+
+The keywords arguments `mesh_type` and `coef` correspond respectively to the `meshType`
+and `coef` arguments of `gmsh.model.geo.mesh.setTransfiniteCurve`.
 
 Available kwargs are
 * `verbose` : `true` or `false` to enable gmsh verbose
@@ -26,6 +31,8 @@ function gen_line_mesh(
     order = 1,
     bnd_names = ("LEFT", "RIGHT"),
     n_partitions = 0,
+    mesh_type = "Progression",
+    coef = 1.0,
     kwargs...,
 )
     gmsh.initialize()
@@ -40,7 +47,7 @@ function gen_line_mesh(
     AB = gmsh.model.geo.addLine(A, B)
 
     # Mesh settings
-    gmsh.model.geo.mesh.setTransfiniteCurve(AB, nx)
+    gmsh.model.geo.mesh.setTransfiniteCurve(AB, nx, mesh_type, coef)
 
     # Define boundaries (`0` stands for 0D, i.e nodes)
     # ("-1" to create a new tag)
