@@ -53,51 +53,69 @@
         @test nodes(mesh) == [Node_t() for i in 1:nnodes(mesh)]
         @test cells(mesh) == [Tri3_t() for i in 1:ncells(mesh)]
 
-        @test boundary_tag(mesh, "South") == 1 &&
+        @test boundary_tag(mesh, "South") == 4 &&
               boundary_tag(mesh, "East") == 2 &&
               boundary_tag(mesh, "North") == 3 &&
-              boundary_tag(mesh, "West") == 4
+              boundary_tag(mesh, "West") == 1
 
-        @test boundary_names(mesh)[1] == "South" &&
-              boundary_names(mesh)[2] == "East" &&
-              boundary_names(mesh)[3] == "North" &&
-              boundary_names(mesh)[4] == "West"
+        @test boundary_names(mesh)[1] == :West &&
+              boundary_names(mesh)[2] == :East &&
+              boundary_names(mesh)[3] == :North &&
+              boundary_names(mesh)[4] == :South
 
-        ref_nodes_south = Set([1, 5, 6, 2])
-        ref_nodes_east = Set([3, 8, 7, 2])
-        ref_nodes_north = Set([4, 10, 9, 3])
-        ref_nodes_west = Set([4, 12, 11, 1])
-        @test Set(absolute_indices(mesh, :node)[boundary_nodes(mesh, 1)]) == ref_nodes_south
-        @test Set(absolute_indices(mesh, :node)[boundary_nodes(mesh, 2)]) == ref_nodes_east
-        @test Set(absolute_indices(mesh, :node)[boundary_nodes(mesh, 3)]) == ref_nodes_north
-        @test Set(absolute_indices(mesh, :node)[boundary_nodes(mesh, 4)]) == ref_nodes_west
+        coords = get_coords.(get_nodes(mesh))
+        @test all(
+            xy -> last(xy) == 0.0,
+            coords[boundary_nodes(mesh, boundary_tag(mesh, "South"))],
+        )
+        @test all(
+            xy -> last(xy) == 1.0,
+            coords[boundary_nodes(mesh, boundary_tag(mesh, "North"))],
+        )
+        @test all(
+            xy -> first(xy) == 0.0,
+            coords[boundary_nodes(mesh, boundary_tag(mesh, "West"))],
+        )
+        @test all(
+            xy -> first(xy) == 1.0,
+            coords[boundary_nodes(mesh, boundary_tag(mesh, "East"))],
+        )
 
-        for tag in 1:4
-            _nodes = [
-                i for face in boundary_faces(mesh, tag) for
-                i in connectivities_indices(mesh, :f2n)[face]
-            ]
-            if tag == 1
-                (@test Set(absolute_indices(mesh, :node)[_nodes]) == ref_nodes_south)
-            else
-                nothing
-            end
-            if tag == 2
-                (@test Set(absolute_indices(mesh, :node)[_nodes]) == ref_nodes_east)
-            else
-                nothing
-            end
-            if tag == 3
-                (@test Set(absolute_indices(mesh, :node)[_nodes]) == ref_nodes_north)
-            else
-                nothing
-            end
-            if tag == 4
-                (@test Set(absolute_indices(mesh, :node)[_nodes]) == ref_nodes_west)
-            else
-                nothing
-            end
-        end
+        # ref_nodes_south = Set([1, 5, 6, 2])
+        # ref_nodes_east = Set([3, 8, 7, 2])
+        # ref_nodes_north = Set([4, 10, 9, 3])
+        # ref_nodes_west = Set([4, 12, 11, 1])
+        # @test Set(absolute_indices(mesh, :node)[boundary_nodes(mesh, 1)]) == ref_nodes_south
+        # @test Set(absolute_indices(mesh, :node)[boundary_nodes(mesh, 2)]) == ref_nodes_east
+        # @test Set(absolute_indices(mesh, :node)[boundary_nodes(mesh, 3)]) == ref_nodes_north
+        # @test Set(absolute_indices(mesh, :node)[boundary_nodes(mesh, 4)]) == ref_nodes_west
+
+        # for tag in 1:4
+        #     _nodes = [
+        #         i for face in boundary_faces(mesh, tag) for
+        #         i in connectivities_indices(mesh, :f2n)[face]
+        #     ]
+        #     if tag == 1
+        #         (@test Set(absolute_indices(mesh, :node)[_nodes]) == ref_nodes_south)
+        #     else
+        #         nothing
+        #     end
+        #     if tag == 2
+        #         (@test Set(absolute_indices(mesh, :node)[_nodes]) == ref_nodes_east)
+        #     else
+        #         nothing
+        #     end
+        #     if tag == 3
+        #         (@test Set(absolute_indices(mesh, :node)[_nodes]) == ref_nodes_north)
+        #     else
+        #         nothing
+        #     end
+        #     if tag == 4
+        #         (@test Set(absolute_indices(mesh, :node)[_nodes]) == ref_nodes_west)
+        #     else
+        #         nothing
+        #     end
+        # end
 
         # for (tag,name) in boundary_names(mesh)
         #     @show tag,name

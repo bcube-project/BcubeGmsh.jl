@@ -154,8 +154,6 @@ function _read_msh(spaceDim::Int, verbose::Bool)
         bc_nodes = bc_nodes,
         metadata,
     )
-    Bcube.add_absolute_indices!(mesh, :node, absolute_node_indices)
-    Bcube.add_absolute_indices!(mesh, :cell, absolute_cell_indices)
     return mesh
 end
 
