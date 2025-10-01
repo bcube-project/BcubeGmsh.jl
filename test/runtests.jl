@@ -19,7 +19,6 @@ import Bcube:
     nvertices,
     nedges,
     nfaces,
-    absolute_indices,
     boundary_nodes,
     boundary_faces,
     connectivities_indices
