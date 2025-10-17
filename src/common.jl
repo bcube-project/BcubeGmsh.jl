@@ -11,6 +11,7 @@ const GMSHTYPE = Dict(
     5 => Bcube.Hexa8_t(),
     6 => Bcube.Penta6_t(),
     7 => Bcube.Pyra5_t(),
+    8 => Bcube.Bar3_t(),
     9 => Bcube.Tri6_t(),
     10 => Bcube.Quad9_t(),
     21 => Bcube.Tri9_t(),
