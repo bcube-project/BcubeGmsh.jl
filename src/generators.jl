@@ -564,21 +564,38 @@ end
 
 """
     gen_circle_mesh(
-        output, n;
+        output,
+        n::Integer;
         radius = 1.0,
-        order = 1,
-        n_partitions = 0,
-        kwargs...
+        order::Integer = 1,
+        n_arcs::Integer = 2,
+        θ_offset = 0,
+        n_partitions::Integer = 0,
+        kwargs...,
     )
 
 Generate a mesh of a circle with `n` points and write the mesh to `output`.
 
-The circle is actually divided into two equal arcs that are meshed with `n/2` points.
-Hence, there will always be a node in (R,0) and a node in (-R,0).
+The circle is actually divided into `n_arcs` equal arcs that are meshed with `n/n_arcs` points.
+
+The parameter `θ_offset` gives control of the angle of the first arc point (to control the position
+of the "fixed" arc nodes).
 
 For kwargs, see [`gen_line_mesh`](@ref).
 """
-function gen_circle_mesh(output, n; radius = 1.0, order = 1, n_partitions = 0, kwargs...)
+function gen_circle_mesh(
+    output,
+    n::Integer;
+    radius = 1.0,
+    order::Integer = 1,
+    n_arcs::Integer = 2,
+    θ_offset = 0,
+    n_partitions::Integer = 0,
+    kwargs...,
+)
+    @assert n_arcs >= 2 "Number of arcs must be at least 2"
+    @assert round(Int, n / n_arcs) >= 2 "Total number of points must be greater or equal than 2*n_arcs"
+
     gmsh.initialize()
     _apply_gmsh_options(; kwargs...)
 
@@ -586,22 +603,24 @@ function gen_circle_mesh(output, n; radius = 1.0, order = 1, n_partitions = 0, k
 
     # Points
     O = gmsh.model.geo.addPoint(0, 0, 0, lc)
-    A = gmsh.model.geo.addPoint(radius, 0, 0, lc)
-    B = gmsh.model.geo.addPoint(-radius, 0, 0, lc)
+    θ_arcs = [θ_offset + (i - 1) * 2π / n_arcs for i in 1:n_arcs]
+    pts = map(θ -> gmsh.model.geo.addPoint(radius * cos(θ), radius * sin(θ), 0, lc), θ_arcs)
 
     # Lines
-    AOB = gmsh.model.geo.addCircleArc(A, O, B)
-    BOA = gmsh.model.geo.addCircleArc(B, O, A)
+    lines =
+        map(((A, B),) -> gmsh.model.geo.addCircleArc(A, O, B), zip(pts, circshift(pts, -1)))
 
-    # Mesh
-    gmsh.model.geo.mesh.setTransfiniteCurve(AOB, round(Int, n / 2))
-    gmsh.model.geo.mesh.setTransfiniteCurve(BOA, round(Int, n / 2))
+    # Mesh : apply transifinite on each line
+    foreach(
+        Base.Fix2(gmsh.model.geo.mesh.setTransfiniteCurve, round(Int, n / n_arcs)),
+        lines,
+    )
 
     # Synchronize
     gmsh.model.geo.synchronize()
 
     # Define boundaries (`1` stands for 1D, i.e lines)
-    domain = gmsh.model.addPhysicalGroup(1, [AOB, BOA])
+    domain = gmsh.model.addPhysicalGroup(1, lines)
     gmsh.model.setPhysicalName(1, domain, "Domain")
 
     # Gen mesh
