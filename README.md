@@ -103,4 +103,16 @@ This project also contains some "common" mesh generators. Here is a non-exhausti
         n_partitions = 0,
         kwargs...
     )`
+* `gen_ring_mesh(
+        output;
+        r_int,
+        r_ext,
+        lc = 1e-1,
+        transfinite = false,
+        nr = 0,
+        nθ = 0,
+        order = 1,
+        n_partitions = 0,
+        kwargs...,
+    )`
 
