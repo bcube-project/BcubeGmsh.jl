@@ -35,6 +35,11 @@
     )
     @test fname2sum[fname] == bytes2hex(open(sha1, joinpath(tempdir, fname)))
 
+    # gen_circle_mesh
+    fname = "gmsh_circle_mesh.msh"
+    BcubeGmsh.gen_circle_mesh(joinpath(tempdir, fname), 30)
+    @test fname2sum[fname] == bytes2hex(open(sha1, joinpath(tempdir, fname)))
+
     # gen_disk_mesh
     fname = "gmsh_disk_mesh.msh"
     BcubeGmsh.gen_disk_mesh(joinpath(tempdir, fname))

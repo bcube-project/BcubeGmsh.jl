@@ -667,6 +667,75 @@ function gen_ring_mesh(
 end
 
 """
+    gen_circle_mesh(
+        output,
+        n::Integer;
+        radius = 1.0,
+        order::Integer = 1,
+        n_arcs::Integer = 2,
+        θ_offset = 0,
+        n_partitions::Integer = 0,
+        kwargs...,
+    )
+Generate a mesh of a circle with `n` points and write the mesh to `output`.
+The circle is actually divided into `n_arcs` equal arcs that are meshed with `n/n_arcs` points.
+The parameter `θ_offset` gives control of the angle of the first arc point (to control the position
+of the "fixed" arc nodes).
+For kwargs, see [`gen_line_mesh`](@ref).
+"""
+function gen_circle_mesh(
+    output,
+    n::Integer;
+    radius = 1.0,
+    order::Integer = 1,
+    n_arcs::Integer = 2,
+    θ_offset = 0,
+    n_partitions::Integer = 0,
+    kwargs...,
+)
+    @assert n_arcs >= 2 "Number of arcs must be at least 2"
+    @assert round(Int, n / n_arcs) >= 2 "Total number of points must be greater or equal than 2*n_arcs"
+
+    gmsh.initialize()
+    _apply_gmsh_options(; kwargs...)
+
+    lc = 1.0
+
+    # Points
+    O = gmsh.model.geo.addPoint(0, 0, 0, lc)
+    θ_arcs = [θ_offset + (i - 1) * 2π / n_arcs for i in 1:n_arcs]
+    pts = map(θ -> gmsh.model.geo.addPoint(radius * cos(θ), radius * sin(θ), 0, lc), θ_arcs)
+
+    # Lines
+    lines =
+        map(((A, B),) -> gmsh.model.geo.addCircleArc(A, O, B), zip(pts, circshift(pts, -1)))
+
+    # Mesh : apply transifinite on each line
+    foreach(
+        Base.Fix2(gmsh.model.geo.mesh.setTransfiniteCurve, round(Int, n / n_arcs) + 1),
+        lines,
+    )
+
+    # Synchronize
+    gmsh.model.geo.synchronize()
+
+    # Define boundaries (`1` stands for 1D, i.e lines)
+    domain = gmsh.model.addPhysicalGroup(1, lines)
+    gmsh.model.setPhysicalName(1, domain, "Domain")
+
+    # Gen mesh
+    gmsh.model.mesh.generate(1)
+    gmsh.model.mesh.setOrder(order)
+    gmsh.model.mesh.partition(n_partitions)
+
+    # Write result
+    gmsh.write(output)
+
+    # End
+    gmsh.finalize()
+end
+
+"""
     gen_disk_mesh(
         output;
         radius = 1.0,
