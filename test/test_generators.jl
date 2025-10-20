@@ -49,4 +49,9 @@
     fname = "gmsh_cylinder_shell_mesh.msh"
     BcubeGmsh.gen_cylinder_shell_mesh(joinpath(tempdir, fname), 30, 10)
     @test fname2sum[fname] == bytes2hex(open(sha1, joinpath(tempdir, fname)))
+
+    # gen_cylinder_shell_mesh
+    fname = "gmsh_ring_mesh.msh"
+    BcubeGmsh.gen_ring_mesh(joinpath(tempdir, fname); r_int = 1.0, r_ext = 2.0, lc = 0.1)
+    @test fname2sum[fname] == bytes2hex(open(sha1, joinpath(tempdir, fname)))
 end

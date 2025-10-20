@@ -563,6 +563,110 @@ function gen_hexa_mesh(
 end
 
 """
+    gen_ring_mesh(
+        output;
+        r_int,
+        r_ext,
+        transfinite = false,
+        nr = 0,
+        nθ = 0,
+        lc = 1e-1,
+        order = 1,
+        n_partitions = 0,
+        kwargs...
+    )
+
+Generate a 2D mesh of a ring of interior radius `r_int` and exterior radius `r_ext` and write the mesh to `output`.
+
+If `transfinite` is set to `true`, the mesh is composed of quads defined by `nr` and `nθ`. For kwargs,
+see [`gen_line_mesh`](@ref).
+"""
+function gen_ring_mesh(
+    output;
+    r_int,
+    r_ext,
+    lc = 1e-1,
+    transfinite = false,
+    nr = 0,
+    nθ = 0,
+    order = 1,
+    n_partitions = 0,
+    kwargs...,
+)
+    gmsh.initialize()
+    _apply_gmsh_options(; kwargs...)
+
+    # Points
+    O = gmsh.model.geo.addPoint(0, 0, 0, lc)
+    A1 = gmsh.model.geo.addPoint(r_int, 0, 0, lc)
+    B1 = gmsh.model.geo.addPoint(r_int * cos(2π / 3), r_int * sin(2π / 3), 0, lc)
+    C1 = gmsh.model.geo.addPoint(r_int * cos(4π / 3), r_int * sin(4π / 3), 0, lc)
+    A2 = gmsh.model.geo.addPoint(r_ext, 0, 0, lc)
+    B2 = gmsh.model.geo.addPoint(r_ext * cos(2π / 3), r_ext * sin(2π / 3), 0, lc)
+    C2 = gmsh.model.geo.addPoint(r_ext * cos(4π / 3), r_ext * sin(4π / 3), 0, lc)
+
+    # Lines
+    A1OB1 = gmsh.model.geo.addCircleArc(A1, O, B1)
+    B1OC1 = gmsh.model.geo.addCircleArc(B1, O, C1)
+    C1OA1 = gmsh.model.geo.addCircleArc(C1, O, A1)
+    A2OB2 = gmsh.model.geo.addCircleArc(A2, O, B2)
+    B2OC2 = gmsh.model.geo.addCircleArc(B2, O, C2)
+    C2OA2 = gmsh.model.geo.addCircleArc(C2, O, A2)
+    A1A2 = gmsh.model.geo.addLine(A1, A2)
+    B1B2 = gmsh.model.geo.addLine(B1, B2)
+    C1C2 = gmsh.model.geo.addLine(C1, C2)
+
+    # Contour
+    circle1 = gmsh.model.geo.addCurveLoop([A1OB1, B1OC1, C1OA1])
+    circle2 = gmsh.model.geo.addCurveLoop([A2OB2, B2OC2, C2OA2])
+    loop1 = gmsh.model.geo.addCurveLoop([A1A2, A2OB2, -B1B2, -A1OB1])
+    loop2 = gmsh.model.geo.addCurveLoop([B1B2, B2OC2, -C1C2, -B1OC1])
+    loop3 = gmsh.model.geo.addCurveLoop([C1C2, C2OA2, -A1A2, -C1OA1])
+
+    # Surface
+    rings = if transfinite
+        map(l -> gmsh.model.geo.addPlaneSurface([l]), [loop1, loop2, loop3])
+    else
+        [gmsh.model.geo.addPlaneSurface([circle2, circle1])]
+    end
+
+    # Mesh (if transfinite)
+    if transfinite
+        _nθ = round(Int, nθ / 3) + 1
+        for l in (A1OB1, B1OC1, C1OA1, A2OB2, B2OC2, C2OA2)
+            gmsh.model.geo.mesh.setTransfiniteCurve(l, _nθ)
+        end
+        for l in (A1A2, B1B2, C1C2)
+            gmsh.model.geo.mesh.setTransfiniteCurve(l, nr)
+        end
+        gmsh.model.geo.mesh.setTransfiniteSurface.(rings)
+        gmsh.model.geo.mesh.setRecombine.(2, rings)
+    end
+
+    # Synchronize
+    gmsh.model.geo.synchronize()
+
+    # Define boundaries (`1` stands for 1D, i.e lines)
+    inner = gmsh.model.addPhysicalGroup(1, [A1OB1, B1OC1, C1OA1])
+    outer = gmsh.model.addPhysicalGroup(1, [A2OB2, B2OC2, C2OA2])
+    domain = gmsh.model.addPhysicalGroup(2, rings)
+    gmsh.model.setPhysicalName(1, inner, "INNER")
+    gmsh.model.setPhysicalName(1, outer, "OUTER")
+    gmsh.model.setPhysicalName(2, domain, "Domain")
+
+    # Gen mesh
+    gmsh.model.mesh.generate(2)
+    gmsh.model.mesh.setOrder(order)
+    gmsh.model.mesh.partition(n_partitions)
+
+    # Write result
+    gmsh.write(output)
+
+    # End
+    gmsh.finalize()
+end
+
+"""
     gen_disk_mesh(
         output;
         radius = 1.0,
