@@ -632,7 +632,7 @@ function gen_ring_mesh(
 
     # Mesh (if transfinite)
     if transfinite
-        _nθ = round(Int, nθ / 3)
+        _nθ = round(Int, nθ / 3) + 1
         for l in (A1OB1, B1OC1, C1OA1, A2OB2, B2OC2, C2OA2)
             gmsh.model.geo.mesh.setTransfiniteCurve(l, _nθ)
         end
