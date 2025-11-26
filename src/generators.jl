@@ -449,6 +449,7 @@ end
         n_partitions = 0,
         write_geo = false,
         transfinite_lines = true,
+        recombine_z = (transfinite || (type == :hexa),
         lc = 1e-1,
         kwargs...,
     )
@@ -476,7 +477,7 @@ function gen_hexa_mesh(
     write_geo = false,
     transfinite = (type == :hexa),
     transfinite_lines = (type == :hexa),
-    recombine_z = (transfinite || isHexa),
+    recombine_z = (transfinite || (type == :hexa),
     lc = 1e-1,
     kwargs...,
 )
