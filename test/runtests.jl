@@ -1,9 +1,9 @@
 using Test
 using BcubeGmsh
 using Bcube
-using SHA
-using DelimitedFiles
+using Serialization
 import Bcube:
+    AbstractMesh,
     nodes,
     cells,
     Node_t,
@@ -23,26 +23,13 @@ import Bcube:
     boundary_faces,
     connectivities_indices
 
-"""
-Custom way to "include" a file to print infos.
-"""
-function custom_include(path)
-    filename = split(path, "/")[end]
-    print("Running test file " * filename * "...")
-    include(path)
-    println("done.")
-end
+const SERIALIZED_EXT = ".bcube-mesh.serialized"
+const REF_DIR = joinpath(@__DIR__, "references")
+
+include(joinpath(@__DIR__, "utils.jl"))
 
 # This dir will be removed at the end of the tests
 tempdir = mktempdir()
-
-# Reading sha1 checksums
-filename = "checksums"
-(get(ENV, "GITHUB_CI", "false") == "true") && (filename *= "-github")
-Sys.isapple() && (filename *= "-apple")
-Sys.iswindows() && (filename *= "-windows")
-f = readdlm(joinpath(@__DIR__, "$(filename).sha1"), String)
-fname2sum = Dict(r[2] => r[1] for r in eachrow(f))
 
 @testset "BcubeGmsh.jl" begin
     custom_include("./test_read.jl")
