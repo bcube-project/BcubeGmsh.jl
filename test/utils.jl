@@ -8,16 +8,9 @@ function custom_include(path)
     println("done.")
 end
 
-function isapprox_arrays(a::AbstractArray, b::AbstractArray; rtol::Real = eps())
-    function g(x, y)
-        if abs(y) < 10rtol
-            isapprox(x, y; rtol = 0, atol = eps())
-        else
-            isapprox(x, y; rtol = rtol)
-        end
-    end
-    success = all(map(g, a, b))
-    (success == false) && (@show a, b)
+function isapprox_arrays(a::AbstractArray, b::AbstractArray; atol::Real = eps())
+    success = all(abs.(a .- b) .< atol)
+    (success == false) && (@show a, b, maximum(abs.(a .- b)))
     return success
 end
 
@@ -42,14 +35,19 @@ end
 Compare two meshes with the given `tol` for floating numbers. Return true if
 the two meshes are identical (with respect to the tol), false otherwise.
 """
-function compare_meshes(mesh_a::AbstractMesh, mesh_b::AbstractMesh, tol; verbose = false)
+function compare_meshes(
+    mesh_a::AbstractMesh,
+    mesh_b::AbstractMesh,
+    atol = eps();
+    verbose = false,
+)
     try
         identical = true
 
         # Compare nodes
-        if any(
-            ((x, y),) -> isapprox_arrays(get_coords(x), get_coords(y), tol),
-            zip(get_nodes(mesh_a), get_nodes(mesh_b)),
+        if !all(
+            ((x, y),) -> isapprox_arrays(x, y; atol),
+            zip(get_coords.(get_nodes(mesh_a)), get_coords.(get_nodes(mesh_b))),
         )
             verbose && println("Comparison of nodes failed")
             identical = false
@@ -78,9 +76,14 @@ function compare_meshes(mesh_a::AbstractMesh, mesh_b::AbstractMesh, tol; verbose
 end
 
 """ `filepath_a` should be handled with Bcube IO interface while `filepath_b` should be handled by Serialization """
-function compare_meshes_helper(filepath_a::String, filepath_b::String, tol = 1e-15)
+function compare_meshes_helper(
+    filepath_a::String,
+    filepath_b::String,
+    tol = eps();
+    verbose = true,
+)
     mesh_a = read_mesh(filepath_a)
     @assert endswith(filepath_b, SERIALIZED_EXT)
     mesh_b = Serialization.deserialize(filepath_b)
-    return compare_meshes(mesh_a, mesh_b, tol)
+    return compare_meshes(mesh_a, mesh_b, tol; verbose)
 end
