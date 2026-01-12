@@ -2,7 +2,9 @@ struct GmshMetaData <: Bcube.AbstractMeshMetaData
     name2cells::Dict{String, Vector{Int}}
 end
 
-Bcube.get_zone_names(metadata::GmshMetaData, ::Bcube.AbstractMesh) = keys(metadata.names)
+function Bcube.get_zone_names(metadata::GmshMetaData, ::Bcube.AbstractMesh)
+    keys(metadata.name2cells)
+end
 function Bcube.get_zone_element_indices(metadata::GmshMetaData, ::Bcube.AbstractMesh, name)
     metadata.name2cells[name]
 end
