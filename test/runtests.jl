@@ -2,6 +2,7 @@ using Test
 using BcubeGmsh
 using Bcube
 using Serialization
+using Distances
 import Bcube:
     AbstractMesh,
     nodes,

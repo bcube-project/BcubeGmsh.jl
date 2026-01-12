@@ -85,5 +85,40 @@ function compare_meshes_helper(
     mesh_a = read_mesh(filepath_a)
     @assert endswith(filepath_b, SERIALIZED_EXT)
     mesh_b = Serialization.deserialize(filepath_b)
+    @assert mesh_b isa AbstractMesh "Error while reading serialized mesh"
+    @show typeof(mesh_a)
+    @show typeof(mesh_b)
+    error("dbg")
     return compare_meshes(mesh_a, mesh_b, tol; verbose)
+end
+
+function compare_mesh_nodes_cloud(
+    mesh_a::AbstractMesh,
+    mesh_b::AbstractMatch,
+    tol = eps();
+    verbose = false,
+)
+    x = hcat(get_coords.(get_nodes(mesh_a))...)
+    y = hcat(get_coords.(get_nodes(mesh_b))...)
+    d = pairwise(Euclidean(), x, y; dims = 2)
+    d_min = map(minimum, eachrow(d))
+    success = all(d_min .< tol)
+    if !success && verbose
+        println("d_max = $(maximum(d_min))")
+    end
+    return success
+end
+
+""" `filepath_a` should be handled with Bcube IO interface while `filepath_b` should be handled by Serialization """
+function compare_mesh_nodes_cloud_helper(
+    filepath_a::String,
+    filepath_b::String,
+    tol = eps();
+    verbose = true,
+)
+    mesh_a = read_mesh(filepath_a)
+    @assert endswith(filepath_b, SERIALIZED_EXT)
+    mesh_b = Serialization.deserialize(filepath_b)
+
+    return compare_mesh_nodes_cloud(mesh_a, mesh_b; tol, verbose)
 end
