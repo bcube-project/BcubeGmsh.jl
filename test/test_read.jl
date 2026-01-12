@@ -162,4 +162,38 @@
         mesh = read_mesh(path)
         @test spacedim(mesh) === 3
     end
+
+    @testset "metadata" begin
+        mesh = read_mesh(joinpath(@__DIR__, "mesh", "stefan-one-column.msh"))
+        @test Bcube.get_zone_names(mesh) == Set(("SUBSTRATE", "ALUMINIUM", "WATER"))
+        @test Bcube.get_zone_element_indices(mesh, "SUBSTRATE") == [1]
+        @test Bcube.get_zone_element_indices(mesh, "ALUMINIUM") == [1]
+        @test Bcube.get_zone_element_indices(mesh, "WATER") == [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+        ]
+    end
 end
