@@ -32,11 +32,13 @@ jobs:
       GITHUB_CI: "true"
     steps:
       - uses: actions/checkout@v6
+        with:
+          lfs: "true"
       - uses: julia-actions/setup-julia@latest
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         env:
           cache-name: cache-artifacts
         with:

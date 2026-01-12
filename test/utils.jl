@@ -86,20 +86,25 @@ function compare_meshes_helper(
     @assert endswith(filepath_b, SERIALIZED_EXT)
     mesh_b = Serialization.deserialize(filepath_b)
     @assert mesh_b isa AbstractMesh "Error while reading serialized mesh"
-    @show typeof(mesh_a)
-    @show typeof(mesh_b)
-    error("dbg")
     return compare_meshes(mesh_a, mesh_b, tol; verbose)
 end
 
+""" Point cloud comparison : avoid using this costly function on large meshes """
 function compare_mesh_nodes_cloud(
     mesh_a::AbstractMesh,
-    mesh_b::AbstractMatch,
+    mesh_b::AbstractMesh,
     tol = eps();
     verbose = false,
 )
+    if nnodes(mesh_a) != nnodes(mesh_b)
+        verbose && println("Different number of nodes")
+        return false
+    end
+
     x = hcat(get_coords.(get_nodes(mesh_a))...)
     y = hcat(get_coords.(get_nodes(mesh_b))...)
+
+    verbose && println("Computing point cloud distances with $(nnodes(mesh_a)) nodes...")
     d = pairwise(Euclidean(), x, y; dims = 2)
     d_min = map(minimum, eachrow(d))
     success = all(d_min .< tol)
@@ -119,6 +124,7 @@ function compare_mesh_nodes_cloud_helper(
     mesh_a = read_mesh(filepath_a)
     @assert endswith(filepath_b, SERIALIZED_EXT)
     mesh_b = Serialization.deserialize(filepath_b)
+    @assert mesh_b isa AbstractMesh "Error while reading serialized mesh"
 
-    return compare_mesh_nodes_cloud(mesh_a, mesh_b; tol, verbose)
+    return compare_mesh_nodes_cloud(mesh_a, mesh_b, tol; verbose)
 end
