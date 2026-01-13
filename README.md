@@ -118,9 +118,10 @@ This project also contains some "common" mesh generators. Here is a non-exhausti
 
 ## Development instructions
 
-To run the tests, `git lfs` must be present on your system, and you must `checkout` the concerned files:
+To run the tests, `git lfs` must be present on your system, and you must `fetch` the concerned files:
 ```bash
 git checkout foo
-git lfs checkout
+git lfs install
+git lfs pull
 ```
 

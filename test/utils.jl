@@ -52,6 +52,13 @@ function compare_meshes(
             verbose && println("Comparison of nodes failed")
             identical = false
         end
+        if verbose
+            d = maximum(
+                ((x, y),) -> norm(x - y),
+                zip(get_coords.(get_nodes(mesh_a)), get_coords.(get_nodes(mesh_b))),
+            )
+            println("Maximum distance between two nodes : $d")
+        end
 
         # Compare c2n
         if !compare_connectivities(
@@ -59,6 +66,27 @@ function compare_meshes(
             Bcube.connectivities_indices(mesh_b, :c2n),
         )
             verbose && println("Comparison of c2n failed")
+            identical = false
+        end
+
+        # Compare bc tags
+        bcnodes_a = Bcube.boundary_nodes(mesh_a)
+        bcnodes_b = Bcube.boundary_nodes(mesh_b)
+        if Set(keys(bcnodes_a)) != Set(keys(bcnodes_b))
+            if verbose
+                println("BC tags differ")
+                @show keys(bcnodes_a)
+                @show keys(bcnodes_b)
+            end
+            identical = false
+        end
+
+        # Compare bc nodes
+        if !all(
+            tag -> Bcube.boundary_nodes(mesh_a, tag) == Bcube.boundary_nodes(mesh_b, tag),
+            keys(bcnodes_a),
+        )
+            verbose && println("BC nodes differ")
             identical = false
         end
 
@@ -107,10 +135,9 @@ function compare_mesh_nodes_cloud(
     verbose && println("Computing point cloud distances with $(nnodes(mesh_a)) nodes...")
     d = pairwise(Euclidean(), x, y; dims = 2)
     d_min = map(minimum, eachrow(d))
-    success = all(d_min .< tol)
-    if !success && verbose
-        println("d_max = $(maximum(d_min))")
-    end
+    max_of_min = maximum(d_min)
+    success = max_of_min < tol # alternatively, `success = maximum(d_min) < tol`
+    verbose && println("d_max = $(max_of_min)")
     return success
 end
 
