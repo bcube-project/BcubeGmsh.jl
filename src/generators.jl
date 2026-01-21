@@ -449,6 +449,7 @@ end
         n_partitions = 0,
         write_geo = false,
         transfinite_lines = true,
+        recombine_z = (transfinite || (type == :hexa)),
         lc = 1e-1,
         kwargs...,
     )
@@ -476,6 +477,7 @@ function gen_hexa_mesh(
     write_geo = false,
     transfinite = (type == :hexa),
     transfinite_lines = (type == :hexa),
+    recombine_z = (transfinite || (type == :hexa)),
     lc = 1e-1,
     kwargs...,
 )
@@ -508,8 +510,7 @@ function gen_hexa_mesh(
 
     # Extrusion
     nlayers = (transfinite || isHexa || transfinite_lines) ? [nz - 1] : []
-    recombine = (transfinite || isHexa)
-    out = gmsh.model.geo.extrude([(2, ABCD)], 0, 0, lz, nlayers, [], recombine)
+    out = gmsh.model.geo.extrude([(2, ABCD)], 0, 0, lz, nlayers, [], recombine_z)
 
     # Identification
     zmin = ABCD
