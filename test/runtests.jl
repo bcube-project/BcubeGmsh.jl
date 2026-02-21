@@ -30,8 +30,7 @@ const ASSETS_DIR = joinpath(@__DIR__, "assets")
 include(joinpath(@__DIR__, "utils.jl"))
 
 # This dir will be removed at the end of the tests
-# tempdir = mktempdir()
-tempdir = joinpath(@__DIR__, "..", "tmp")
+tempdir = mktempdir()
 
 @testset "BcubeGmsh.jl" begin
     custom_include("./test_read.jl")
