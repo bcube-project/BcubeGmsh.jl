@@ -70,14 +70,23 @@
         1e-15,
     )
 
-    # gen_cylinder_shell_mesh
+    # gen_cylinder_shell_mesh (quad)
+    fname = "gmsh_cylinder_shell_mesh_quad.msh"
+    BcubeGmsh.gen_cylinder_shell_mesh(joinpath(tempdir, fname); nθ = 20, nz = 8)
+    @test compare_meshes_helper(
+        joinpath(tempdir, fname),
+        joinpath(ASSETS_DIR, fname),
+        1e-15,
+    )
+
+    # gen_cylinder_shell_mesh (tri)
     # Use `compare_mesh_nodes_cloud_helper` because node ordering (and c2n) varies between machines...
-    fname = "gmsh_cylinder_shell_mesh.msh"
-    BcubeGmsh.gen_cylinder_shell_mesh(joinpath(tempdir, fname), 30, 10)
+    fname = "gmsh_cylinder_shell_mesh_tri.msh"
+    BcubeGmsh.gen_cylinder_shell_mesh(joinpath(tempdir, fname); lc = 0.2)
     @test compare_mesh_nodes_cloud_helper(
         joinpath(tempdir, fname),
         joinpath(ASSETS_DIR, fname),
-        7e-5,
+        3e-8,
     )
 
     # gen_cylinder_shell_mesh
