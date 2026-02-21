@@ -164,7 +164,7 @@
     end
 
     @testset "metadata" begin
-        mesh = read_mesh(joinpath(@__DIR__, "mesh", "stefan-one-column.msh"))
+        mesh = read_mesh(joinpath(ASSETS_DIR, "stefan-one-column.msh"))
         @test Bcube.get_zone_names(mesh) == Set(("SUBSTRATE", "ALUMINIUM", "WATER"))
         @test Bcube.get_zone_element_indices(mesh, "SUBSTRATE") == [1]
         @test Bcube.get_zone_element_indices(mesh, "ALUMINIUM") == [1]

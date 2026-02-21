@@ -111,9 +111,7 @@ function compare_meshes_helper(
     verbose = true,
 )
     mesh_a = read_mesh(filepath_a)
-    @assert endswith(filepath_b, SERIALIZED_EXT)
-    mesh_b = Serialization.deserialize(filepath_b)
-    @assert mesh_b isa AbstractMesh "Error while reading serialized mesh"
+    mesh_b = read_mesh(filepath_b)
     return compare_meshes(mesh_a, mesh_b, tol; verbose)
 end
 
@@ -149,9 +147,7 @@ function compare_mesh_nodes_cloud_helper(
     verbose = true,
 )
     mesh_a = read_mesh(filepath_a)
-    @assert endswith(filepath_b, SERIALIZED_EXT)
-    mesh_b = Serialization.deserialize(filepath_b)
-    @assert mesh_b isa AbstractMesh "Error while reading serialized mesh"
+    mesh_b = read_mesh(filepath_b)
 
     return compare_mesh_nodes_cloud(mesh_a, mesh_b, tol; verbose)
 end
