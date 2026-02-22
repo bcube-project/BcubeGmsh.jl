@@ -1102,16 +1102,16 @@ end
 
 """
     gen_cylinder_shell_mesh(
-        output,
-        nθ,
-        nz;
+        output;
         radius = 1.0,
         lz = 1.0,
+        nθ = 0,
+        nz = 0,
         lc = 1e-1,
         order = 1,
         n_partitions = 0,
-        recombine = false,
-        transfinite = false,
+        transfinite = nθ * nz > 0,
+        recombine = transfinite,
         kwargs...,
     )
 
@@ -1119,16 +1119,16 @@ end
 Extrusion is not used to enable "random" tri filling (whereas with extrusion we can at worse obtain regular rectangle triangle)
 """
 function gen_cylinder_shell_mesh(
-    output,
-    nθ,
-    nz;
+    output;
     radius = 1.0,
     lz = 1.0,
+    nθ = 0,
+    nz = 0,
     lc = 1e-1,
     order = 1,
     n_partitions = 0,
-    recombine = false,
-    transfinite = false,
+    transfinite = nθ * nz > 0,
+    recombine = transfinite,
     kwargs...,
 )
     gmsh.initialize()
@@ -1170,6 +1170,7 @@ function gen_cylinder_shell_mesh(
 
     # Mesh settings
     if transfinite
+        @assert nθ * nz > 0
         _nθ = round(Int, nθ / 3)
         foreach(
             line -> gmsh.model.geo.mesh.setTransfiniteCurve(line, _nθ),

@@ -111,9 +111,7 @@ function compare_meshes_helper(
     verbose = true,
 )
     mesh_a = read_mesh(filepath_a)
-    @assert endswith(filepath_b, SERIALIZED_EXT)
-    mesh_b = Serialization.deserialize(filepath_b)
-    @assert mesh_b isa AbstractMesh "Error while reading serialized mesh"
+    mesh_b = read_mesh(filepath_b)
     return compare_meshes(mesh_a, mesh_b, tol; verbose)
 end
 
@@ -129,11 +127,21 @@ function compare_mesh_nodes_cloud(
         return false
     end
 
-    x = hcat(get_coords.(get_nodes(mesh_a))...)
-    y = hcat(get_coords.(get_nodes(mesh_b))...)
+    coords_a = zeros(nnodes(mesh_a), Bcube.spacedim(mesh_a))
+    coords_b = zeros(nnodes(mesh_b), Bcube.spacedim(mesh_b))
+
+    for (row_a, a, row_b, b) in zip(
+        eachrow(coords_a),
+        get_coords.(get_nodes(mesh_a)),
+        eachrow(coords_b),
+        get_coords.(get_nodes(mesh_b)),
+    )
+        row_a .= a
+        row_b .= b
+    end
 
     verbose && println("Computing point cloud distances with $(nnodes(mesh_a)) nodes...")
-    d = pairwise(Euclidean(), x, y; dims = 2)
+    d = pairwise(Euclidean(), coords_a, coords_b; dims = 1)
     d_min = map(minimum, eachrow(d))
     max_of_min = maximum(d_min)
     success = max_of_min < tol # alternatively, `success = maximum(d_min) < tol`
@@ -149,9 +157,7 @@ function compare_mesh_nodes_cloud_helper(
     verbose = true,
 )
     mesh_a = read_mesh(filepath_a)
-    @assert endswith(filepath_b, SERIALIZED_EXT)
-    mesh_b = Serialization.deserialize(filepath_b)
-    @assert mesh_b isa AbstractMesh "Error while reading serialized mesh"
+    mesh_b = read_mesh(filepath_b)
 
     return compare_mesh_nodes_cloud(mesh_a, mesh_b, tol; verbose)
 end

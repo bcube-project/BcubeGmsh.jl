@@ -25,8 +25,7 @@ import Bcube:
     boundary_faces,
     connectivities_indices
 
-const SERIALIZED_EXT = ".bcube-mesh.serialized"
-const REF_DIR = joinpath(@__DIR__, "references")
+const ASSETS_DIR = joinpath(@__DIR__, "assets")
 
 include(joinpath(@__DIR__, "utils.jl"))
 

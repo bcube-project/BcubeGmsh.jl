@@ -13,10 +13,7 @@
 
     for i in 1:n_partitions
         fname = basename * "_$i.msh"
-        @test compare_meshes_helper(
-            joinpath(tempdir, fname),
-            joinpath(REF_DIR, first(splitext(fname)) * SERIALIZED_EXT),
-        )
+        @test compare_meshes_helper(joinpath(tempdir, fname), joinpath(ASSETS_DIR, fname))
     end
 
     # gen_mesh_around_disk
@@ -24,14 +21,14 @@
     BcubeGmsh.gen_mesh_around_disk(joinpath(tempdir, fname), :tri; nθ = 30, nr = 10)
     @test compare_meshes_helper(
         joinpath(tempdir, fname),
-        joinpath(REF_DIR, first(splitext(fname)) * SERIALIZED_EXT),
+        joinpath(ASSETS_DIR, fname),
         1e-10,
     )
     fname = "gmsh_mesh_around_disk_quad.msh"
     BcubeGmsh.gen_mesh_around_disk(joinpath(tempdir, fname), :quad; nθ = 30, nr = 10)
     @test compare_meshes_helper(
         joinpath(tempdir, fname),
-        joinpath(REF_DIR, first(splitext(fname)) * SERIALIZED_EXT),
+        joinpath(ASSETS_DIR, fname),
         1e-10,
     )
 
@@ -46,24 +43,21 @@
     )
     @test compare_meshes_helper(
         joinpath(tempdir, fname),
-        joinpath(REF_DIR, first(splitext(fname)) * SERIALIZED_EXT),
+        joinpath(ASSETS_DIR, fname),
         1e-14,
     )
 
     # gen_circle_mesh
     fname = "gmsh_circle_mesh.msh"
     BcubeGmsh.gen_circle_mesh(joinpath(tempdir, fname), 30)
-    @test compare_meshes_helper(
-        joinpath(tempdir, fname),
-        joinpath(REF_DIR, first(splitext(fname)) * SERIALIZED_EXT),
-    )
+    @test compare_meshes_helper(joinpath(tempdir, fname), joinpath(ASSETS_DIR, fname))
 
     # gen_disk_mesh
     fname = "gmsh_disk_mesh.msh"
     BcubeGmsh.gen_disk_mesh(joinpath(tempdir, fname))
     @test compare_meshes_helper(
         joinpath(tempdir, fname),
-        joinpath(REF_DIR, first(splitext(fname)) * SERIALIZED_EXT),
+        joinpath(ASSETS_DIR, fname),
         1e-15,
     )
 
@@ -72,17 +66,26 @@
     BcubeGmsh.gen_star_disk_mesh(joinpath(tempdir, fname), 0.1, 7; nθ = 100)
     @test compare_meshes_helper(
         joinpath(tempdir, fname),
-        joinpath(REF_DIR, first(splitext(fname)) * SERIALIZED_EXT),
+        joinpath(ASSETS_DIR, fname),
         1e-15,
     )
 
-    # gen_cylinder_shell_mesh
+    # gen_cylinder_shell_mesh (quad)
+    fname = "gmsh_cylinder_shell_mesh_quad.msh"
+    BcubeGmsh.gen_cylinder_shell_mesh(joinpath(tempdir, fname); nθ = 20, nz = 8)
+    @test compare_meshes_helper(
+        joinpath(tempdir, fname),
+        joinpath(ASSETS_DIR, fname),
+        1e-15,
+    )
+
+    # gen_cylinder_shell_mesh (tri)
     # Use `compare_mesh_nodes_cloud_helper` because node ordering (and c2n) varies between machines...
-    fname = "gmsh_cylinder_shell_mesh.msh"
-    BcubeGmsh.gen_cylinder_shell_mesh(joinpath(tempdir, fname), 30, 10)
+    fname = "gmsh_cylinder_shell_mesh_tri.msh"
+    BcubeGmsh.gen_cylinder_shell_mesh(joinpath(tempdir, fname); lc = 0.1)
     @test compare_mesh_nodes_cloud_helper(
         joinpath(tempdir, fname),
-        joinpath(REF_DIR, first(splitext(fname)) * SERIALIZED_EXT),
+        joinpath(ASSETS_DIR, fname),
         7e-5,
     )
 
@@ -91,7 +94,7 @@
     BcubeGmsh.gen_ring_mesh(joinpath(tempdir, fname); r_int = 1.0, r_ext = 2.0, lc = 0.1)
     @test compare_meshes_helper(
         joinpath(tempdir, fname),
-        joinpath(REF_DIR, first(splitext(fname)) * SERIALIZED_EXT),
+        joinpath(ASSETS_DIR, fname),
         1e-14,
     )
 end
