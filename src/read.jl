@@ -107,7 +107,7 @@ function _read_msh(spaceDim::Int, verbose::Bool)
 
     # Build cell->node connectivity (with Gmsh internal numbering convention)
     c2n_gmsh = Bcube.Connectivity(
-        Int[nnodes(k) for k in reduce(vcat, celltypes)],
+        map(nnodes, celltypes),
         Int[glo2loc_node_indices[k] for k in reduce(vcat, nodeTags)],
     )
 
