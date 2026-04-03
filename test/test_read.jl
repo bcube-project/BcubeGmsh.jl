@@ -170,4 +170,12 @@
         @test Bcube.get_zone_element_indices(mesh, "ALUMINIUM") == [1]
         @test Bcube.get_zone_element_indices(mesh, "WATER") == collect(2:26)
     end
+
+    @testset "one-cell-mesh" begin
+        path = joinpath(tempdir, "mesh.msh")
+        BcubeGmsh.gen_hexa_mesh(path, :hexa; nx = 2, ny = 2, nz = 2)
+        mesh = read_mesh(path)
+        @test ncells(mesh) == 1
+        @test nnodes(mesh) == 8
+    end
 end
