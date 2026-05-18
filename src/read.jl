@@ -154,6 +154,8 @@ function _read_msh(spaceDim::Int, verbose::Bool)
         c2n;
         bc_names = bc_names,
         bc_nodes = bc_nodes,
+        absoluteNodeIndices = absolute_node_indices,
+        absoluteCellIndices = absolute_cell_indices,
         metadata,
     )
     return mesh
