@@ -85,21 +85,17 @@ function _read_msh(spaceDim::Int, verbose::Bool)
     _, glo2loc_cell_indices = Bcube.densify(absolute_cell_indices; permute_back = true)
 
     # Read boundary conditions
-    bc_tags = gmsh.model.getPhysicalGroups(-1)
-    bc_names = [gmsh.model.getPhysicalName(_dim, tag) for (_dim, tag) in bc_tags]
-    # keep only physical groups of dimension "dim-1" with none-empty names.
-    # bc is a vector of (tag,name) for all valid boundary conditions
-    bc = [
-        (tag, _name) for ((dim, tag), _name) in zip(bc_tags, bc_names) if
-        dim == topo_dim - 1 && _name ≠ ""
-    ]
+    bc_tags = gmsh.model.getPhysicalGroups(topo_dim - 1)
+    bc_names = map(((dim, tag),) -> gmsh.model.getPhysicalName(dim, tag), bc_tags)
+    ind = findall(length.(bc_names) .> 0) # Filter groups with no name / empty name
 
-    bc_names = Dict(convert(Int, tag) => _name for (tag, _name) in bc)
-    bc_nodes = Dict(
+    bc_tag2name =
+        Dict(convert(Int, tag) => name for ((dim, tag), name) in zip(bc_tags, bc_names))
+    bc_tag2nodes = Dict(
         convert(Int, tag) => Int[
             glo2loc_node_indices[i] for
             i in gmsh.model.mesh.getNodesForPhysicalGroup(topo_dim - 1, tag)[1]
-        ] for (tag, _name) in bc
+        ] for (dim, tag) in bc_tags
     )
 
     # Fill type of each cell
@@ -153,8 +149,8 @@ function _read_msh(spaceDim::Int, verbose::Bool)
         nodes,
         celltypes,
         c2n;
-        bc_names = bc_names,
-        bc_nodes = bc_nodes,
+        bc_names = bc_tag2name,
+        bc_nodes = bc_tag2nodes,
         absoluteNodeIndices = absolute_node_indices,
         absoluteCellIndices = absolute_cell_indices,
         metadata,
