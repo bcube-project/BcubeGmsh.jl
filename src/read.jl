@@ -14,10 +14,12 @@ function Bcube.read_mesh(
     filepath::String;
     domains = String[],
     spacedim::Int = 0,
+    topodim::Int = 0,
     verbose::Bool = false,
     kwargs...,
 )
     @assert length(domains) == 0 "Reading only some domains is not supported yet (but easy to implement)"
+    @assert topodim == 0 "The topological dimension is set by Gmsh, it cannot be set by the `topodim` keyword argument"
     return read_msh(filepath, spacedim; verbose)
 end
 
@@ -26,7 +28,11 @@ end
 
 Read a .msh file designated by its `path`.
 
-See `read_msh()` for more details.
+The number of topological dimensions is given by the highest dimension found in the file. The
+number of space dimensions is deduced from the axis dimensions if `spaceDim = 0`.
+If `spaceDim` is set to a positive number, this number is used as the number of space dimensions.
+
+See [`read_msh`](@ref) for more details.
 """
 function read_msh(path::String, spaceDim::Int = 0; verbose::Bool = false)
     isfile(path) ? nothing : error("File does not exist ", path)
@@ -51,17 +57,13 @@ end
 To use this function, the `gmsh` file must have been opened already (see `read_msh(path::String)`
 for instance).
 
-The number of topological dimensions is given by the highest dimension found in the file. The
-number of space dimensions is deduced from the axis dimensions if `spaceDim = 0`.
-If `spaceDim` is set to a positive number, this number is used as the number of space dimensions.
-
 # Implementation
 Global use of `gmsh` module. Do not try to improve this function by passing an argument
 such as `gmsh` or `gmsh.model` : it leads to problems.
 """
 function _read_msh(spaceDim::Int, verbose::Bool)
-    # Spatial dimension of the mesh
-    dim = gmsh.model.getDimension()
+    # Topological dimension of the mesh
+    topo_dim = gmsh.model.getDimension()
 
     # Read nodes
     ids, xyz = gmsh.model.mesh.getNodes()
@@ -76,7 +78,7 @@ function _read_msh(spaceDim::Int, verbose::Bool)
     nodes = [Node(xyz[1:_spaceDim, i]) for i in axes(xyz, 2)]
 
     # Read cells
-    elementTypes, elementTags, nodeTags = gmsh.model.mesh.getElements(dim)
+    elementTypes, elementTags, nodeTags = gmsh.model.mesh.getElements(topo_dim)
 
     # Create a cell number remapping to ensure a dense numbering
     absolute_cell_indices = Int.(reduce(vcat, elementTags))
@@ -84,20 +86,20 @@ function _read_msh(spaceDim::Int, verbose::Bool)
 
     # Read boundary conditions
     bc_tags = gmsh.model.getPhysicalGroups(-1)
-    bc_names = [gmsh.model.getPhysicalName(_dim, _tag) for (_dim, _tag) in bc_tags]
+    bc_names = [gmsh.model.getPhysicalName(_dim, tag) for (_dim, tag) in bc_tags]
     # keep only physical groups of dimension "dim-1" with none-empty names.
     # bc is a vector of (tag,name) for all valid boundary conditions
     bc = [
-        (_tag, _name) for
-        ((_dim, _tag), _name) in zip(bc_tags, bc_names) if _dim == dim - 1 && _name ≠ ""
+        (tag, _name) for ((dim, tag), _name) in zip(bc_tags, bc_names) if
+        dim == topo_dim - 1 && _name ≠ ""
     ]
 
-    bc_names = Dict(convert(Int, _tag) => _name for (_tag, _name) in bc)
+    bc_names = Dict(convert(Int, tag) => _name for (tag, _name) in bc)
     bc_nodes = Dict(
-        convert(Int, _tag) => Int[
+        convert(Int, tag) => Int[
             glo2loc_node_indices[i] for
-            i in gmsh.model.mesh.getNodesForPhysicalGroup(dim - 1, _tag)[1]
-        ] for (_tag, _name) in bc
+            i in gmsh.model.mesh.getNodesForPhysicalGroup(topo_dim - 1, tag)[1]
+        ] for (tag, _name) in bc
     )
 
     # Fill type of each cell
@@ -115,22 +117,21 @@ function _read_msh(spaceDim::Int, verbose::Bool)
     c2n = _c2n_gmsh2cgns(celltypes, c2n_gmsh)
 
     # Read volumic physical groups (build a dict tag -> name)
-    el_tags = gmsh.model.getPhysicalGroups(_spaceDim)
-    _el_names = [gmsh.model.getPhysicalName(_dim, _tag) for (_dim, _tag) in el_tags]
-    el = [
-        (_tag, _name) for ((_dim, _tag), _name) in zip(el_tags, _el_names) if
-        _dim == _spaceDim && _name ≠ ""
-    ]
-    el_names = Dict(convert(Int, _tag) => _name for (_tag, _name) in el)
-    # el_names_inv = Dict(_name => convert(Int, _tag) for (_tag, _name) in el)
+    el_tags = gmsh.model.getPhysicalGroups(topo_dim)
+    el_names = map(((dim, tag),) -> gmsh.model.getPhysicalName(dim, tag), el_tags)
+    ind = findall(length.(el_names) .> 0) # Filter groups with no name / empty name
+    el_tag2name = Dict(
+        convert(Int, tag) => name for
+        ((dim, tag), name) in zip(el_tags[ind], el_names[ind])
+    )
 
     # Read cell indices associated to each volumic physical group
     el_cells = Dict{Int, Array{Int}}()
-    for (_dim, _tag) in el_tags
+    for (dim, tag) in el_tags[ind]
         v = Int[]
 
-        for iEntity in gmsh.model.getEntitiesForPhysicalGroup(_dim, _tag)
-            tmpTypes, tmpTags, tmpNodeTags = gmsh.model.mesh.getElements(_dim, iEntity)
+        for iEntity in gmsh.model.getEntitiesForPhysicalGroup(dim, tag)
+            tmpTypes, tmpTags, tmpNodeTags = gmsh.model.mesh.getElements(dim, iEntity)
 
             # Notes : a PhysicalGroup "entity" can contain different types of elements.
             # So `tmpTags` is an array of the cell indices of each type in the Physical group.
@@ -138,13 +139,13 @@ function _read_msh(spaceDim::Int, verbose::Bool)
                 v = vcat(v, Int.(_tmpTags)) # would a "push!" be a better alternative?
             end
         end
-        el_cells[_tag] = v
+        el_cells[tag] = v
     end
 
     # Create the name => cells dict
     names2cells = Dict(
         name => [glo2loc_cell_indices[i] for i in el_cells[tag]] for
-        (tag, name) in el_names
+        (tag, name) in el_tag2name
     )
     metadata = GmshMetaData(names2cells)
 
