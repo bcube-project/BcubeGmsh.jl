@@ -178,4 +178,13 @@
         @test ncells(mesh) == 1
         @test nnodes(mesh) == 8
     end
+
+    @testset "issue34" begin
+        # Rk: "ITO" and "WALL" correspond to the same cells.
+        mesh = read_mesh(joinpath(ASSETS_DIR, "issue34-mesh.msh"))
+        @test Bcube.get_zone_names(mesh) == Set(("ITO", "MUSH", "WALL"))
+        @test Bcube.get_zone_element_indices(mesh, "ITO") == collect(1:20)
+        @test Bcube.get_zone_element_indices(mesh, "MUSH") == collect(21:50)
+        @test Bcube.get_zone_element_indices(mesh, "WALL") == collect(1:20)
+    end
 end

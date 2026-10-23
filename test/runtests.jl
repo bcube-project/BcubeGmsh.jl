@@ -1,7 +1,6 @@
 using Test
 using BcubeGmsh
 using Bcube
-using Serialization
 using LinearAlgebra
 using Distances
 import Bcube:

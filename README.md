@@ -13,7 +13,7 @@ mesh = read_mesh("output.msh")
 ```
 
 ## Mesh generators
-This project also contains some "common" mesh generators. Here is a non-exhaustive list:
+This project also contains some "common" mesh generators. Check-out the `src/generators.jl` file for more information. Here is a non-exhaustive list:
 * `gen_line_mesh(
         output;
         nx = 2,
